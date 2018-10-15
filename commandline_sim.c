@@ -1,11 +1,11 @@
-#include<iostream>
+
 #include<stdio.h>
 #include<unistd.h>
 #include<sys/types.h>
 #include<string.h>
 #include<stdlib.h>
 #include<sys/wait.h>
-using namespace std;
+
 int main(){
 
 

@@ -35,12 +35,9 @@ int main(){
         write(1,buffer,nb);
       }
 
-
     }
 
   }
-
-
 
   return 0;
 }

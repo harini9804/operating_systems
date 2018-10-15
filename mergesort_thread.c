@@ -1,118 +1,141 @@
-#include<stdio.h>
+
+/* C program for Merge Sort */
 #include<stdlib.h>
+#include<stdio.h>
 #include<pthread.h>
 
-#define MAX 5
-int a[MAX];
-int n;
-int part;
+struct data{
+  int *arr;
+  int l;
+  int r;
+};
 
-// merge function for merging two parts
-void merge(int low, int mid, int high)
+// Merges two subarrays of arr[].
+// First subarray is arr[l..m]
+// Second subarray is arr[m+1..r]
+void merge(int arr[], int l, int m, int r)
 {
-    int* left = (int *) malloc(sizeof(int)*(mid - low + 1));
-    int* right = (int *) malloc(sizeof(int)*(high - mid));
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 =  r - m;
 
-    // n1 is size of left part and n2 is size
-    // of right part
-    int n1 = mid - low + 1, n2 = high - mid, i, j;
+    /* create temp arrays */
+    int L[n1], R[n2];
 
-    // storing values in left part
+    /* Copy data to temp arrays L[] and R[] */
     for (i = 0; i < n1; i++)
-        left[i] = a[i + low];
+        L[i] = arr[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[m + 1+ j];
 
-    // storing values in right part
-    for (i = 0; i < n2; i++)
-        right[i] = a[i + mid + 1];
-
-    int k = low;
-    i = j = 0;
-
-    // merge left and right in ascending order
-    while (i < n1 && j < n2) {
-        if (left[i] <= right[j])
-            a[k++] = left[i++];
+    /* Merge the temp arrays back into arr[l..r]*/
+    i = 0; // Initial index of first subarray
+    j = 0; // Initial index of second subarray
+    k = l; // Initial index of merged subarray
+    while (i < n1 && j < n2)
+    {
+        if (L[i] <= R[j])
+        {
+            arr[k] = L[i];
+            i++;
+        }
         else
-            a[k++] = right[j++];
+        {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
     }
 
-    // insert remaining values from left
-    while (i < n1) {
-        a[k++] = left[i++];
+    /* Copy the remaining elements of L[], if there
+       are any */
+    while (i < n1)
+    {
+        arr[k] = L[i];
+        i++;
+        k++;
     }
 
-    // insert remaining values from right
-    while (j < n2) {
-        a[k++] = right[j++];
+    /* Copy the remaining elements of R[], if there
+       are any */
+    while (j < n2)
+    {
+        arr[k] = R[j];
+        j++;
+        k++;
     }
 }
 
-
-// merge sort function
-void merge_sort_a(int low, int high)
+/* l is for left index and r is right index of the
+   sub-array of arr to be sorted */
+void *mergeSort(void *param)
 {
-    // calculating mid point of array
-    int mid = low + (high - low) / 2;
-    if (low < high) {
+  pthread_t tid1,tid2;
+  struct data *arg = param;
+  int l,r,*arr;
+  arr = arg->arr;
+  l=arg->l;
+  r=arg->r;
 
-        // calling first half
-        merge_sort_a(low, mid);
+  struct data *data1 = (struct data *)malloc(sizeof(struct data));
+  struct data *data2 = (struct data *)malloc(sizeof(struct data));
 
-        // calling second half
-        merge_sort_a(mid + 1, high);
 
-        // merging the two halves
-        merge(low, mid, high);
+
+    if (l < r)
+    {
+        // Same as (l+r)/2, but avoids overflow for
+        // large l and h
+        int m = l+(r-l)/2;
+        data1->arr = arr;
+        data1->l = l;
+        data1->r = m;
+        data2->arr = arr;
+        data2->l = m+1;
+        data2->r = r;
+
+        // Sort first and second halves
+        pthread_create(&tid1,NULL,mergeSort,data1);
+        pthread_create(&tid2,NULL,mergeSort,data2);
+        pthread_join(tid1,NULL);
+        pthread_join(tid2,NULL);
+        merge(arr, l, m, r);
     }
 }
 
-void* merge_sort(void* arg){
-
-  int thread_part = part++;
-
-  int low = thread_part * ( n / 4);
-  int high = (thread_part+1)*(n/4)-1;
-
-  int mid = low+(high - low)/2;
-  if (low<high){
-    merge_sort_a(low,mid);
-    merge_sort_a(mid+1,high);
-    merge(low,mid,high);
-  }
-
-
+/* UTILITY FUNCTIONS */
+/* Function to print an array */
+void printArray(int A[], int size)
+{
+    int i;
+    for (i=0; i < size; i++)
+        printf("%d ", A[i]);
+    printf("\n");
 }
 
+/* Driver program to test above functions */
 int main()
 {
-  part=0;
-  printf("\nEnter the number of integers: ");
-  scanf("%d",&n);
-  printf("\nEnter the integers: ");
+    int arr[] = {12, 11, 13, 5, 6, 7};
+    int arr_size = sizeof(arr)/sizeof(arr[0]);
 
-  for(int i=0;i<n;i++){
-    scanf("%d",&a[i]);
-  }
+    struct data *data1 = (struct data *)malloc(sizeof(struct data));
+    data1->arr = arr;
+    data1->l = 0;
+    data1->r = arr_size-1;
 
-  pthread_t threads[4];
-  for(int i=0;i<4;i++)
-    pthread_create(&threads[i],NULL,merge_sort, (void *)NULL);
+    printf("Given array is \n");
+    printArray(arr, arr_size);
 
-  for(int i=0;i<4;i++)
-    pthread_join(threads[i],NULL);
-
-  merge(0,(n/2 -1)/2, n/2 -1);
-  merge(n/2,n/2+(n-1-n/2)/2, n-1);
-  merge(0,(n-1)/2,n-1);
-
-  printf("\nSorted array: ");
-  for(int i=0;i<n;i++){
-    printf("%d",a[i]);
-  }
+    pthread_t tid;
+    pthread_create(&tid,NULL,mergeSort,data1);
+    pthread_join(tid,NULL);
 
 
 
+//    mergeSort(arr, 0, arr_size - 1);
 
-
-  return 0;
+    printf("\nSorted array is \n");
+    printArray(arr, arr_size);
+    return 0;
 }

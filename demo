@@ -1,0 +1,2 @@
+ed_attr_setschedpolicy(&attr,SCHED_RR)asada
+
